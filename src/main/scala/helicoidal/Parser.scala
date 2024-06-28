@@ -134,13 +134,5 @@ final class Parser(source: String) {
 }
 
 object Parser {
-  def parse(s: String): Expr =
-    new Parser(s).expr()
-
-  def main(args: Array[String]): Unit = {
-    val source = "I/6"
-    val parser = new Parser(source)
-    val expr = parser.expr()
-    println(s"$expr")
-  }
+  def parse(s: String): Expr = new Parser(s).expr()
 }

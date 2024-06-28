@@ -59,7 +59,6 @@ final class EvalSuite extends munit.FunSuite {
   test("y-combinator + forking addition") {
     val src = """B$ B$ L" B$ L# B$ v" B$ v# v# L# B$ v" B$ v# v# L" L# ? B= v# I! I" B$ L$ B+ B$ v" v$ B$ v" v$ B- v# I" I%"""
     val expr = parse(src)
-    println(expr)
     assertEquals(eval(expr), Val.Num(16))
   }
 }

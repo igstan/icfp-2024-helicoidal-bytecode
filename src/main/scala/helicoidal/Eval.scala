@@ -12,10 +12,8 @@ enum Val {
 final case class Lazy(body: Expr, closure: Env)
 
 final case class Env(bindings: IntMap[Lazy]) {
-  def get(k: Int): Lazy = {
-    println(s"getting var: $k")
+  def get(k: Int): Lazy =
     bindings.getOrElse(k, sys.error(s"undefined variable with index: $k"))
-  }
 
   def put(k: Int, v: Lazy): Env =
     Env(bindings.updated(k, v))
@@ -26,8 +24,7 @@ object Env {
 }
 
 object Eval {
-  def eval(expr: Expr, env: Env = Env.empty): Val = {
-    println(s"$expr")
+  def eval(expr: Expr, env: Env = Env.empty): Val =
     expr match {
       case Expr.Num(n)  => Val.Num(n)
       case Expr.Str(s)  => Val.Str(Str.decode(s))
@@ -113,7 +110,6 @@ object Eval {
           case other            => sys.error(s"if condition must be a bool: $other")
         }
     }
-  }
 
   private def evalNum(a: Val, b: Val, op: (Int, Int) => Val): Val =
     (a, b) match {
