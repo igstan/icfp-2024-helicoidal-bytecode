@@ -33,21 +33,21 @@ enum BinOp(t: Char) extends Enum[BinOp] {
 }
 
 enum Expr {
-  case Var(v: Int)
-  case Num(n: Int)
+  case Var(v: Long)
+  case Num(n: BigInt)
   case Str(s: String)
   case Bool(b: Boolean)
   case Uni(op: UniOp, a: Expr)
   case Bin(op: BinOp, a: Expr, b: Expr)
   case Ife(cond: Expr, whenT: Expr, whenF: Expr)
-  case Fun(v: Int, body: Expr)
+  case Fun(v: Long, body: Expr)
 
   override def toString: String =
     this match {
       case Expr.Var(v) => s"v$v"
       case Expr.Num(n) => s"$n"
-      case Expr.Str(s) => s"'$s'"
-      case Expr.Bool(b) => "$b"
+      case Expr.Str(s) => s"'${helicoidal.Str.decode(s)}'"
+      case Expr.Bool(b) => s"$b"
       case Expr.Uni(op, a) => s"(${op.token} $a)"
       case Expr.Bin(op, a, b) if op != BinOp.App => s"(${op.token} ($a) ($b))"
       case Expr.Bin(op, a, b) => s"($a $b)"
@@ -57,15 +57,15 @@ enum Expr {
 }
 
 object Num {
-  def decode(nr: String): Int =
+  def decode(nr: String): BigInt =
     nr.reverse
       .zipWithIndex
-      .foldRight(0) {
+      .foldRight(BigInt(0)) {
         case ((char, pos), result) =>
-          result + Math.pow(94d, pos).toInt * (char.toInt - 33)
+          result + BigInt(char.toInt - 33) * BigInt(94).pow(pos)
       }
 
-  def encode(n: Int): String = {
+  def encode(n: BigInt): String = {
     var div = n
     val res = new StringBuilder
 
@@ -125,8 +125,8 @@ final class Parser(source: String) {
           case 'I' => Expr.Num(Num.decode(token.drop(1)))
           case 'S' => Expr.Str(token.drop(1))
           case '?' => Expr.Ife(expr(), expr(), expr())
-          case 'L' => Expr.Fun(Num.decode(token.substring(1)), expr())
-          case 'v' => Expr.Var(Num.decode(token.substring(1)))
+          case 'L' => Expr.Fun(Num.decode(token.substring(1)).toLong, expr())
+          case 'v' => Expr.Var(Num.decode(token.substring(1)).toLong)
           case _   => sys.error(s"unknown token: $token")
         }
     }

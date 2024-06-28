@@ -10,7 +10,7 @@ import scala.io.StdIn
 
 object Client {
   def send(payload: String): String = {
-    val body = Str.encode(payload)
+    val body = "S" + Str.encode(payload)
     println(s">>> $body")
     val client = HttpClient.newHttpClient()
     val req = HttpRequest.newBuilder
@@ -22,7 +22,7 @@ object Client {
     val res = client.send(req, BodyHandlers.ofString())
     println(s"<<< $res")
     println(s"<<< ${res.body()}")
-    Str.decode(res.body())
+    res.body()
   }
 }
 
@@ -41,7 +41,7 @@ object Str {
     else str.map(c => AlienToHuman(c.toInt - 33)).mkString
 
   def encode(str: String): String =
-    str.map(Human2Alien(_)).mkString("S", "", "")
+    str.map(Human2Alien(_)).mkString
 }
 
 object Main {
@@ -52,9 +52,20 @@ object Main {
   private def repl(prompt: String): Unit = {
     StdIn.readLine(prompt) match {
       case ":q" => ()
-      case other =>
-        println(Client.send(other))
-        repl(prompt)
+      case line => eval(line); repl(prompt)
+    }
+  }
+
+  private def eval(line: String): Unit = {
+    val response = Client.send(line)
+
+    if (line == "get language_test") {
+      val expr = Parser.parse(response)
+      println(s"EXPR: $expr")
+      val result = Eval.eval(expr)
+      println(s"RESULT: $result")
+    } else {
+      println(Str.decode(response.drop(1)))
     }
   }
 }

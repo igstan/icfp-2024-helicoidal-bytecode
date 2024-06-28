@@ -1,26 +1,26 @@
 package helicoidal
 
-import scala.collection.immutable.IntMap
+import scala.collection.immutable.LongMap
 
 enum Val {
-  case Num(n: Int)
+  case Num(n: BigInt)
   case Str(s: String)
   case Bool(b: Boolean)
-  case Fun(v: Int, body: Expr, closure: Env)
+  case Fun(v: Long, body: Expr, closure: Env)
 }
 
 final case class Lazy(body: Expr, closure: Env)
 
-final case class Env(bindings: IntMap[Lazy]) {
-  def get(k: Int): Lazy =
+final case class Env(bindings: LongMap[Lazy]) {
+  def get(k: Long): Lazy =
     bindings.getOrElse(k, sys.error(s"undefined variable with index: $k"))
 
-  def put(k: Int, v: Lazy): Env =
+  def put(k: Long, v: Lazy): Env =
     Env(bindings.updated(k, v))
 }
 
 object Env {
-  val empty: Env = Env(IntMap.empty)
+  val empty: Env = Env(LongMap.empty)
 }
 
 object Eval {
@@ -45,7 +45,7 @@ object Eval {
 
           case UniOp.S2I =>
             eval(a, env) match {
-              case Val.Str(s) => Val.Num(Num.decode(Str.encode(s).drop(1)))
+              case Val.Str(s) => Val.Num(Num.decode(Str.encode(s)))
               case other      => sys.error(s"$op expected string, got $other")
             }
 
@@ -58,16 +58,23 @@ object Eval {
 
       case Expr.Bin(op, a, b) =>
         op match {
-          case BinOp.Add => evalNum(eval(a, env), eval(b, env), (a, b) => Val.Num(a + b))
-          case BinOp.Sub => evalNum(eval(a, env), eval(b, env), (a, b) => Val.Num(a - b))
-          case BinOp.Mul => evalNum(eval(a, env), eval(b, env), (a, b) => Val.Num(a * b))
-          case BinOp.Div => evalNum(eval(a, env), eval(b, env), (a, b) => Val.Num(a / b))
-          case BinOp.Mod => evalNum(eval(a, env), eval(b, env), (a, b) => Val.Num(a % b))
-          case BinOp.Lt  => evalNum(eval(a, env), eval(b, env), (a, b) => Val.Bool(a < b))
-          case BinOp.Gt  => evalNum(eval(a, env), eval(b, env), (a, b) => Val.Bool(a > b))
-          case BinOp.Eq  => evalNum(eval(a, env), eval(b, env), (a, b) => Val.Bool(a == b))
+          case BinOp.Add => evalNum(op, eval(a, env), eval(b, env), (a, b) => Val.Num(a + b))
+          case BinOp.Sub => evalNum(op, eval(a, env), eval(b, env), (a, b) => Val.Num(a - b))
+          case BinOp.Mul => evalNum(op, eval(a, env), eval(b, env), (a, b) => Val.Num(a * b))
+          case BinOp.Div => evalNum(op, eval(a, env), eval(b, env), (a, b) => Val.Num(a / b))
+          case BinOp.Mod => evalNum(op, eval(a, env), eval(b, env), (a, b) => Val.Num(a % b))
+          case BinOp.Lt  => evalNum(op, eval(a, env), eval(b, env), (a, b) => Val.Bool(a < b))
+          case BinOp.Gt  => evalNum(op, eval(a, env), eval(b, env), (a, b) => Val.Bool(a > b))
           case BinOp.Or  => evalBool(eval(a, env), eval(b, env), _ || _)
           case BinOp.And => evalBool(eval(a, env), eval(b, env), _ && _)
+
+          case BinOp.Eq =>
+            (eval(a, env), eval(b, env)) match {
+              case (Val.Num(a), Val.Num(b))   => Val.Bool(a == b)
+              case (Val.Str(a), Val.Str(b))   => Val.Bool(a == b)
+              case (Val.Bool(a), Val.Bool(b)) => Val.Bool(a == b)
+              case _ => sys.error(s"eq operands must have identical types: $a, $b")
+            }
 
           case BinOp.Cat =>
             (eval(a, env), eval(b, env)) match {
@@ -77,13 +84,13 @@ object Eval {
 
           case BinOp.Take =>
             (eval(a, env), eval(b, env)) match {
-              case (Val.Num(n), Val.Str(s)) => Val.Str(s.take(n))
+              case (Val.Num(n), Val.Str(s)) => Val.Str(s.take(n.toInt))
               case _                        => sys.error(s"illegal operands for take: $a, $b")
             }
 
           case BinOp.Drop =>
             (eval(a, env), eval(b, env)) match {
-              case (Val.Num(n), Val.Str(s)) => Val.Str(s.drop(n))
+              case (Val.Num(n), Val.Str(s)) => Val.Str(s.drop(n.toInt))
               case _                        => sys.error(s"illegal operands for drop: $a, $b")
             }
 
@@ -111,10 +118,15 @@ object Eval {
         }
     }
 
-  private def evalNum(a: Val, b: Val, op: (Int, Int) => Val): Val =
+  private def evalNum(
+    o: BinOp,
+    a: Val,
+    b: Val,
+    op: (BigInt, BigInt) => Val,
+  ): Val =
     (a, b) match {
       case (Val.Num(a), Val.Num(b)) => op(a, b)
-      case _                        => sys.error(s"both operands must be numbers: $a, $b")
+      case _                        => sys.error(s"both operands must be numbers: $o, $a, $b")
     }
 
   private def evalBool(a: Val, b: Val, op: (Boolean, Boolean) => Boolean): Val =

@@ -61,4 +61,28 @@ final class EvalSuite extends munit.FunSuite {
     val expr = parse(src)
     assertEquals(eval(expr), Val.Num(16))
   }
+
+  test("big numbers") {
+    val src = "I1~s:U@"
+    val expr = parse(src)
+    assertEquals(eval(expr), Val.Num(BigInt(124753942619L)))
+  }
+
+  test("multiplication on big numbers") {
+    val src = "B* I$> I1~s:U@"
+    val expr = parse(src)
+    assertEquals(eval(expr), Val.Num(BigInt(38798476154509L)))
+  }
+
+  test("addition on big numbers") {
+    val src = "B+ I# B* I$> I1~s:U@"
+    val expr = parse(src)
+    assertEquals(eval(expr), Val.Num(BigInt(38798476154511L)))
+  }
+
+  test("int-to-string on big numbers") {
+    val src = "U$ B+ I# B* I$> I1~s:U@"
+    val expr = parse(src)
+    assertEquals(eval(expr), Val.Str("4w3s0m3"))
+  }
 }
