@@ -5,11 +5,12 @@ import java.net.http.HttpRequest.BodyPublishers
 import java.net.http.HttpResponse.BodyHandlers
 import java.net.http.{ HttpClient, HttpRequest }
 
+import scala.annotation.tailrec
 import scala.io.StdIn
 
 object Client {
   def send(payload: String): String = {
-    val body = Coder.encode(payload)
+    val body = Str.encode(payload)
     println(s">>> $body")
     val client = HttpClient.newHttpClient()
     val req = HttpRequest.newBuilder
@@ -21,11 +22,11 @@ object Client {
     val res = client.send(req, BodyHandlers.ofString())
     println(s"<<< $res")
     println(s"<<< ${res.body()}")
-    Coder.decode(res.body())
+    Str.decode(res.body())
   }
 }
 
-object Coder {
+object Str {
   private val chars =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!\"#$%&'()*+,-./:;<=>?@[\\]^_`|~ \n"
 
@@ -37,7 +38,7 @@ object Coder {
   def decode(str: String): String =
     if str.isEmpty
     then str
-    else str.substring(1).map(c => AlienToHuman(c.toInt - 33)).mkString
+    else str.map(c => AlienToHuman(c.toInt - 33)).mkString
 
   def encode(str: String): String =
     str.map(Human2Alien(_)).mkString("S", "", "")
@@ -63,7 +64,8 @@ object Main {
     repl()
   }
 
-  def repl(prompt: String = "icfp> "): Unit = {
+  @tailrec
+  private def repl(prompt: String = "icfp> "): Unit = {
     StdIn.readLine(prompt) match {
       case ":q" => ()
       case other =>
