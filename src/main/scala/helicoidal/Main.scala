@@ -13,7 +13,8 @@ object Client {
     val body = "S" + Str.encode(payload)
     println(s">>> $body")
     val client = HttpClient.newHttpClient()
-    val req = HttpRequest.newBuilder
+    val req = HttpRequest
+      .newBuilder
       .uri(new URI("https://boundvariable.space/communicate"))
       .header("Authorization", s"Bearer ${sys.env("ICFP_TOKEN")}")
       .POST(BodyPublishers.ofString(body))
@@ -49,23 +50,30 @@ object Main {
     repl(prompt = "icfp> ")
 
   @tailrec
-  private def repl(prompt: String): Unit = {
+  private def repl(prompt: String): Unit =
     StdIn.readLine(prompt) match {
       case ":q" => ()
       case line => eval(line); repl(prompt)
     }
-  }
 
   private def eval(line: String): Unit = {
-    val response = Client.send(line)
+    val expr = Parser.parse(Client.send(line))
 
-    if (line == "get language_test") {
-      val expr = Parser.parse(response)
-      println(s"EXPR: $expr")
-      val result = Eval.eval(expr)
-      println(s"RESULT: $result")
-    } else {
-      println(Str.decode(response.drop(1)))
+    println(s"[ EXPR ]=======================================================")
+    println(s"$expr")
+    println(s"===============================================================")
+    println()
+
+    StdIn.readLine("Evaluate? [y/N]: ") match {
+      case "y" =>
+        Eval.eval(expr) match {
+          case Val.Num(n) => println(n)
+          case Val.Str(s) => println(s)
+          case Val.Bool(b) => println(b)
+          case f @ Val.Fun(_, _, _) => println(s"[λ: $f]")
+        }
+
+      case _ => ()
     }
   }
 }

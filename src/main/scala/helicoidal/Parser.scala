@@ -46,7 +46,7 @@ enum Expr {
     this match {
       case Expr.Var(v) => s"v$v"
       case Expr.Num(n) => s"$n"
-      case Expr.Str(s) => s"'${helicoidal.Str.decode(s)}'"
+      case Expr.Str(s) => helicoidal.Str.decode(s)
       case Expr.Bool(b) => s"$b"
       case Expr.Uni(op, a) => s"(${op.token} $a)"
       case Expr.Bin(op, a, b) if op != BinOp.App => s"(${op.token} ($a) ($b))"
