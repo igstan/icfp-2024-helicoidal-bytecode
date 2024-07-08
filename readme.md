@@ -1,4 +1,4 @@
-# ICFP 2024 — Helicoidal Bytecode
+# ICFP Contest 2024 — Helicoidal Bytecode
 
 I've got the ICFP language interpreter done, including call-by-name and
 call-by-value function application.
