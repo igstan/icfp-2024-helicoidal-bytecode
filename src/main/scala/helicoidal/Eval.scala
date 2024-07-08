@@ -7,15 +7,14 @@ enum Val {
   case Str(s: String)
   case Bool(b: Boolean)
   case Fun(v: Long, body: Expr, closure: Env)
+  case Lazy(body: Expr, closure: Env)
 }
 
-final case class Lazy(body: Expr, closure: Env)
-
-final case class Env(bindings: LongMap[Lazy]) {
-  def get(k: Long): Lazy =
+final case class Env(bindings: LongMap[Val]) {
+  def get(k: Long): Val =
     bindings.getOrElse(k, sys.error(s"undefined variable with index: $k"))
 
-  def put(k: Long, v: Lazy): Env =
+  def put(k: Long, v: Val): Env =
     Env(bindings.updated(k, v))
 }
 
@@ -94,18 +93,25 @@ object Eval {
               case _                        => sys.error(s"illegal operands for drop: $a, $b")
             }
 
-          case BinOp.App =>
+          case BinOp.CallByName =>
+            // Lazy evaluation: we don't evaluate b right now.
             eval(a, env) match {
-              // Lazy evaluation: we don't evaluate b right now.
-              case Val.Fun(v, body, closure) => eval(body, closure.put(v, Lazy(b, env)))
+              case Val.Fun(v, body, closure) => eval(body, closure.put(v, Val.Lazy(b, env)))
               case other                     => sys.error(s"cannot apply: $other is not a function")
+            }
+
+          case BinOp.CallStrict =>
+            (eval(a, env), eval(b, env)) match {
+              case (Val.Fun(v, body, closure), arg) => eval(body, closure.put(v, arg))
+              case (other, _)                       => sys.error(s"cannot apply: $other is not a function")
             }
         }
 
       // Lazy evaluation: it's only now that we evaluate an identifier
       case Expr.Var(v) =>
         env.get(v) match {
-          case Lazy(expr, closure) => eval(expr, closure)
+          case Val.Lazy(expr, closure) => eval(expr, closure)
+          case other => other
         }
 
       case Expr.Fun(v, body) => Val.Fun(v, body, env)

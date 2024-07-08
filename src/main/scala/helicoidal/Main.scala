@@ -53,27 +53,34 @@ object Main {
   private def repl(prompt: String): Unit =
     StdIn.readLine(prompt) match {
       case ":q" => ()
-      case line => eval(line); repl(prompt)
+      case line =>
+        if line.trim.nonEmpty then eval(line)
+        repl(prompt)
     }
 
   private def eval(line: String): Unit = {
     val expr = Parser.parse(Client.send(line))
 
-    println(s"[ EXPR ]=======================================================")
-    println(s"$expr")
-    println(s"===============================================================")
-    println()
+    expr match {
+      case Expr.Str(s) => println(Str.decode(s))
+      case _ =>
+        println(s"[ EXPR ]====================================================")
+        println(s"$expr")
+        println(s"============================================================")
+        println()
 
-    StdIn.readLine("Evaluate? [y/N]: ") match {
-      case "y" =>
-        Eval.eval(expr) match {
-          case Val.Num(n) => println(n)
-          case Val.Str(s) => println(s)
-          case Val.Bool(b) => println(b)
-          case f @ Val.Fun(_, _, _) => println(s"[λ: $f]")
+        StdIn.readLine("Evaluate? [y/N]: ") match {
+          case "y" =>
+            Eval.eval(expr) match {
+              case Val.Lazy(_, _)       => println("<lazy>")
+              case Val.Num(n)           => println(n)
+              case Val.Str(s)           => println(s)
+              case Val.Bool(b)          => println(b)
+              case f @ Val.Fun(_, _, _) => println(s"[λ: $f]")
+            }
+
+          case _ => ()
         }
-
-      case _ => ()
     }
   }
 }
